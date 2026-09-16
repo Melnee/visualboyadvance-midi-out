@@ -10,6 +10,7 @@ target_sources(vbam-core-apu
     Gb_Apu.cpp
     Gb_Apu_State.cpp
     Gb_Oscs.cpp
+    MidiOut.cpp
     Multi_Buffer.cpp
 
     PUBLIC
@@ -20,5 +21,8 @@ target_sources(vbam-core-apu
     Effects_Buffer.h
     Gb_Apu.h
     Gb_Oscs.h
+    MidiOut.h
     Multi_Buffer.h
 )
+
+target_link_libraries(vbam-core-apu PRIVATE rtmidi)
