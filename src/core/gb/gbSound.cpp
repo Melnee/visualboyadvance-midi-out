@@ -4,6 +4,7 @@
 
 #include "core/apu/Effects_Buffer.h"
 #include "core/apu/Gb_Apu.h"
+#include "core/apu/MidiOut.h"
 #include "core/base/system.h"
 #include "core/base/file_util.h"
 #include "core/gb/gb.h"
@@ -18,6 +19,7 @@ gb_effects_config_t gb_effects_config = { false, 0.20f, 0.15f, false };
 static gb_effects_config_t gb_effects_config_current;
 static Simple_Effects_Buffer* stereo_buffer = 0;
 static Gb_Apu* gb_apu;
+static MidiOut* s_midi_out;
 
 static float soundVolume_ = -1;
 static int prevSoundEnable = -1;
@@ -120,6 +122,9 @@ static void gb_remake_stereo_buffer()
     // APU
     if (!gb_apu) {
         gb_apu = new Gb_Apu; // TODO: handle errors
+        if (!s_midi_out)
+            s_midi_out = new MidiOut();
+        gb_apu->set_midi_out(s_midi_out);
         reset_apu();
     }
 

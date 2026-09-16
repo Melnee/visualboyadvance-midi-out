@@ -14,6 +14,7 @@ License along with this module; if not, write to the Free Software Foundation,
 Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA */
 
 #include "core/apu/blargg_source.h"
+#include "core/apu/MidiOut.h"
 
 unsigned const vol_reg    = 0xFF24;
 unsigned const stereo_reg = 0xFF25;
@@ -186,6 +187,7 @@ Gb_Apu::Gb_Apu()
 		o.med_synth   = &med_synth;
 	}
 
+	midi_out_ = nullptr;
 	reduce_clicks_ = false;
 	set_tempo( 1.0 );
 	volume_ = 1.0;
@@ -322,7 +324,49 @@ void Gb_Apu::write_register( blip_time_t time, unsigned addr, uint8_t data )
 		if ( addr < vol_reg )
 		{
 			// Oscillator
-			write_osc( reg / 5, reg, old_data, data );
+			int osc_index = reg / 5;
+			int reg_within_osc = reg % 5;
+			write_osc( osc_index, reg, old_data, data );
+
+			if ( midi_out_ )
+			{
+				if ( reg_within_osc == 4 && (data & 0x80) )
+				{
+					// Trigger bit set: note on
+					int freq_reg, volume;
+					if ( osc_index == 3 )
+					{
+						// Noise: pass NR43 as freq_reg so MidiOut can read clock shift
+						freq_reg = regs [osc_index * 5 + 3];
+						volume   = regs [osc_index * 5 + 2] >> 4;
+					}
+					else if ( osc_index == 2 )
+					{
+						// Wave: frequency same formula, volume from NR32 bits 6:5.
+						// Level encoding: 0=mute, 1=100%, 2=50%, 3=25% — invert to velocity.
+						static const int wave_vol[4] = { 0, 15, 8, 4 };
+						freq_reg = ((regs [osc_index * 5 + 4] & 0x07) << 8) | regs [osc_index * 5 + 3];
+						volume   = wave_vol[(regs [osc_index * 5 + 2] >> 5) & 0x03];
+					}
+					else
+					{
+						// Square channels
+						freq_reg = ((regs [osc_index * 5 + 4] & 0x07) << 8) | regs [osc_index * 5 + 3];
+						volume   = regs [osc_index * 5 + 2] >> 4;
+					}
+					midi_out_->noteOn( osc_index, freq_reg, volume );
+				}
+				else if ( reg_within_osc == 2 && (data >> 4) == 0 && osc_index != 2 )
+				{
+					// Envelope volume zeroed on square/noise: note off
+					midi_out_->noteOff( osc_index );
+				}
+				else if ( reg_within_osc == 0 && osc_index == 2 && !(data & 0x80) )
+				{
+					// Wave DAC disabled (NR30 bit 7 cleared): note off
+					midi_out_->noteOff( 2 );
+				}
+			}
 		}
 		else if ( addr == vol_reg && data != old_data )
 		{
@@ -343,6 +387,9 @@ void Gb_Apu::write_register( blip_time_t time, unsigned addr, uint8_t data )
 			frame_phase = 0;
 			for ( int i = osc_count; --i >= 0; )
 				silence_osc( *oscs [i] );
+
+			if ( midi_out_ )
+				midi_out_->allNotesOff();
 
 			reset_regs();
 			if ( wave.mode != mode_dmg )
