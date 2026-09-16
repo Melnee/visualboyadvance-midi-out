@@ -225,6 +225,7 @@ if(NOT TRANSLATIONS_ONLY)
     add_subdirectory(third_party/include/nonstd)
     add_subdirectory(third_party/include/stb)
     add_subdirectory(third_party/include/ghc)
+    add_subdirectory(third_party/rtmidi)
 
     if(ENABLE_LINK)
         include_directories(third_party/sfml/include)

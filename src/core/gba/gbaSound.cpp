@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "core/apu/Gb_Apu.h"
+#include "core/apu/MidiOut.h"
 #include "core/apu/Multi_Buffer.h"
 #include "core/base/file_util.h"
 #include "core/base/port.h"
@@ -92,6 +93,7 @@ private:
 
 static Gba_Pcm_Fifo pcm[2];
 static Gb_Apu* gb_apu;
+static MidiOut* s_midi_out;
 static Stereo_Buffer* stereo_buffer;
 
 static Blip_Synth<blip_best_quality, 1> pcm_synth[3]; // 32 kHz, 16 kHz, 8 kHz
@@ -475,6 +477,9 @@ void soundShutdown()
 
     delete gb_apu;
     gb_apu = 0;
+
+    delete s_midi_out;
+    s_midi_out = nullptr;
 }
 
 void soundPause()
@@ -742,6 +747,9 @@ void remake_stereo_buffer()
     // APU
     if (!gb_apu) {
         gb_apu = new Gb_Apu; // TODO: handle out of memory
+        if (!s_midi_out)
+            s_midi_out = new MidiOut();
+        gb_apu->set_midi_out(s_midi_out);
         reset_apu();
     }
 

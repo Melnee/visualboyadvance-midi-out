@@ -10,6 +10,7 @@
 #include "core/apu/Gb_Oscs.h"
 
 struct gb_apu_state_t;
+class MidiOut;
 
 class Gb_Apu
 {
@@ -80,6 +81,9 @@ class Gb_Apu
         // tempo in a game music player.
         void set_tempo(double);
 
+        // MIDI output — optional, pass null to disable
+        void set_midi_out(MidiOut* midi_out) { midi_out_ = midi_out; }
+
         // Save states
 
         // Saves full emulation state to state_out. Data format is portable and
@@ -116,6 +120,7 @@ class Gb_Apu
         Gb_Apu(const Gb_Apu &);
         Gb_Apu &operator=(const Gb_Apu &);
 
+        MidiOut* midi_out_;
         Gb_Osc *oscs[osc_count];
         blip_time_t last_time;    // time sound emulator has been run to
         blip_time_t frame_period; // clocks between each frame sequencer step

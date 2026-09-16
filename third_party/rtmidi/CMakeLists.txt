@@ -1,0 +1,15 @@
+add_library(rtmidi STATIC RtMidi.cpp RtMidi.h)
+
+target_include_directories(rtmidi PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+if(UNIX AND NOT APPLE)
+    find_package(ALSA REQUIRED)
+    target_compile_definitions(rtmidi PUBLIC __LINUX_ALSA__)
+    target_link_libraries(rtmidi PUBLIC ALSA::ALSA)
+elseif(APPLE)
+    target_compile_definitions(rtmidi PUBLIC __MACOSX_CORE__)
+    target_link_libraries(rtmidi PUBLIC "-framework CoreMIDI" "-framework CoreFoundation" "-framework CoreAudio")
+elseif(WIN32)
+    target_compile_definitions(rtmidi PUBLIC __WINDOWS_MM__)
+    target_link_libraries(rtmidi PUBLIC winmm)
+endif()
